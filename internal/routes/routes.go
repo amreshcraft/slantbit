@@ -28,6 +28,7 @@ func SetupRouter(userCtrl *controllers.UserController, log *slog.Logger) *chi.Mu
 		r.Route("/users", func(r chi.Router) {
 			r.Get("/", userCtrl.GetUsers)
 			r.Post("/", userCtrl.CreateUser)
+			r.Post("/email", userCtrl.GetUserByEmail)
 		})
 	})
 

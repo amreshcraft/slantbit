@@ -5,16 +5,23 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/amreshcraft/slantbit/internal/models"
 	"github.com/amreshcraft/slantbit/internal/repository"
 	"github.com/amreshcraft/slantbit/internal/service"
+	
 )
 
 type UserController struct {
 	service *service.UserService
 	logger  *slog.Logger
 }
+
+type EmailSearchRequest struct {
+	Email string `json:"email"`
+}
+
 
 func NewUserController(s *service.UserService, l *slog.Logger) *UserController {
 	return &UserController{service: s, logger: l}
@@ -31,6 +38,42 @@ func (c *UserController) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
 }
+
+
+
+func (c *UserController) GetUserByEmail(w http.ResponseWriter, r *http.Request) {
+	var req EmailSearchRequest
+
+	// 1. JSON body decode karein
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// 2. Empty email check karein
+	if strings.TrimSpace(req.Email) == "" {
+		http.Error(w, "Email field is required", http.StatusBadRequest)
+		return
+	}
+
+	// 3. Service call karein (service email normalize aur password strip khud karega)
+	user, err := c.service.FetchUserByEmail(r.Context(), req.Email)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		c.logger.Error("failed to fetch user by email", "email", req.Email, "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. Clean JSON response return karein
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
+
 
 func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user models.User

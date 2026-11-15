@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/amreshcraft/slantbit/internal/models"
 	"github.com/amreshcraft/slantbit/internal/repository"
 	"golang.org/x/crypto/bcrypt"
@@ -19,6 +21,25 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 
 func (s *UserService) FetchAllUsers(ctx context.Context) ([]models.User, error) {
 	return s.repo.GetAll(ctx)
+}
+
+
+
+
+func (s *UserService) FetchUserByEmail(ctx context.Context, email string) (models.User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return models.User{}, errors.New("email cannot be empty")
+	}
+
+	user, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	// Security: API response se password hash strip kar dein
+	user.Password = ""
+	return user, nil
 }
 
 func (s *UserService) RegisterUser(ctx context.Context, user models.User) (models.User, error) {
