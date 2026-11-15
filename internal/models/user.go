@@ -1,0 +1,9 @@
+package models
+
+type User struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Phone    string `json:"phone"`
+	Email    string `json:"email"`
+	Password string `json:"password,omitempty"` // DB se fetch karte waqt ise empty rakhenge
+}
